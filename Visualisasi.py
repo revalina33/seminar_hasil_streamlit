@@ -234,7 +234,7 @@ if uploaded_file:
                 col_text = 'stemming' if 'stemming' in df.columns else df.columns[0]
                 X = df[col_text].fillna('')
                 y = df['Labeling']
-
+                df = df.sample(frac=1, random_state=42).reset_index(drop=True)
                 X_train_raw, X_test_raw, y_train, y_test = train_test_split(
                     X, y, test_size=0.2, random_state=42, stratify=y
                 )
