@@ -11,6 +11,10 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from wordcloud import WordCloud, STOPWORDS
 import plotly.express as px
 
+seed = 42
+random.seed(seed)
+np.random.seed(seed)
+os.environ["PYTHONHASHSEED"] = str(seed)
 # ==============================
 # 1️⃣ Konfigurasi Halaman
 # ==============================
@@ -56,7 +60,7 @@ if uploaded_file:
                   7:'Jul',8:'Agu',9:'Sep',10:'Okt',11:'Nov',12:'Des'}
 
     # ==============================
-    # 3️⃣ Halaman Visualisasi
+    # 4️⃣ Halaman Visualisasi
     # ==============================
     if page == "📊 Visualisasi Data & Tren":
         st.title("📊 Dashboard Analisis Sentimen Shopee")
@@ -190,8 +194,8 @@ if uploaded_file:
                     st.write("**Distribusi Label per Rating Bintang**")
                     dist_rating = df.groupby([col_rating, 'Labeling']).size().reset_index(name='Jumlah')
                     fig_dist = px.bar(dist_rating, x=col_rating, y='Jumlah', color='Labeling',
-                                      barmode='group', text_auto=True,
-                                      color_discrete_map={'Negatif':'#ff4b4b','Positif':'#00cc96'})
+                                     barmode='group', text_auto=True,
+                                     color_discrete_map={'Negatif':'#ff4b4b','Positif':'#00cc96'})
                     st.plotly_chart(fig_dist, use_container_width=True)
 
                 st.divider()
@@ -217,120 +221,150 @@ if uploaded_file:
             else:
                 st.warning("Kolom 'Rating' tidak ditemukan.")
 
-    # ==============================
-    # 4️⃣ Halaman Algoritma 
-    # ==============================
+# ==============================
+# 5️⃣ Halaman Algoritma (VERSI LENGKAP & PERBAIKAN)
+# ==============================
     elif page == "⚙️ Perhitungan Algoritma":
         st.title("⚙️ Evaluasi Performa Model & TF-IDF")
     
-        tab_eval, tab_tfidf = st.tabs(["🚀 Pelatihan & Skor", "🔢 Preview Bobot TF-IDF"])
+    tab_eval, tab_tfidf = st.tabs(["🚀 Pelatihan & Skor", "🔢 Preview Bobot TF-IDF"])
 
-        with tab_eval:
-            st.write(f"Dataset: **{len(df)}** baris ulasan.")
-            
-            if st.button("🚀 Jalankan Komputasi"):
-                with st.spinner("Sedang melatih semua model (RF, SVM Linear, RBF, Poly, Sigmoid)..."):
-                    # 1. Persiapan Data
-                    col_text = 'stemming' if 'stemming' in df.columns else df.columns[0]
-                    X = df[col_text].fillna('')
-                    y = df['Labeling']
+    with tab_eval:
+        st.write(f"Dataset: **{len(df)}** baris ulasan.")
+        
+        if st.button("🚀 Jalankan Komputasi"):
+            with st.spinner("Sedang melatih semua model (RF, SVM Linear, RBF, Poly, Sigmoid)..."):
+                # 1. Persiapan Data
+                col_text = 'stemming' if 'stemming' in df.columns else df.columns[0]
+                X = df[col_text].fillna('')
+                y = df['Labeling']
 
-                    X_train_raw, X_test_raw, y_train, y_test = train_test_split(
-                        X, y, test_size=0.2, random_state=42, stratify=y
-                    )
+                X_train_raw, X_test_raw, y_train, y_test = train_test_split(
+                    X, y, test_size=0.2, random_state=42, stratify=y
+                )
 
-                    # 2. Proses TF-IDF
-                    tfidf = TfidfVectorizer(max_features=5000)
-                    X_train = tfidf.fit_transform(X_train_raw)
-                    X_test = tfidf.transform(X_test_raw)
+                # 2. Proses TF-IDF
+                tfidf = TfidfVectorizer(max_features=5000)
+                X_train = tfidf.fit_transform(X_train_raw)
+                X_test = tfidf.transform(X_test_raw)
 
-                    st.session_state['tfidf_matrix'] = X_train
-                    st.session_state['tfidf_features'] = tfidf.get_feature_names_out()
+                st.session_state['tfidf_matrix'] = X_train
+                st.session_state['tfidf_features'] = tfidf.get_feature_names_out()
 
-                    # 3. Definisi Model
-                    models = {
-                        'Random Forest': RandomForestClassifier(n_estimators=100, random_state=42),
-                        'SVM Linear': SVC(kernel='linear', probability=True, random_state=42),
-                        'SVM RBF': SVC(kernel='rbf', probability=True, random_state=42),
-                        'SVM Polynomial': SVC(kernel='poly', probability=True, random_state=42),
-                        'SVM Sigmoid': SVC(kernel='sigmoid', probability=True, random_state=42)
-                    }
+                # 3. Definisi Model (Menambahkan Poly & Sigmoid)
+                models = {
+                    'Random Forest': RandomForestClassifier(n_estimators=100, random_state=42),
+                    'SVM Linear': SVC(kernel='linear', probability=True),
+                    'SVM RBF': SVC(kernel='rbf', probability=True),
+                    'SVM Polynomial': SVC(kernel='poly', probability=True),
+                    'SVM Sigmoid': SVC(kernel='sigmoid', probability=True)
+                }
 
-                    all_metrics = []
+                all_metrics = []
+                
+           # 4. Loop Pelatihan 
+                for name, model in models.items():
+                    model.fit(X_train, y_train)
+                    y_pred = model.predict(X_test)
                     
-                    # 4. Loop Pelatihan 
-                    for name, model in models.items():
-                        model.fit(X_train, y_train)
-                        y_pred = model.predict(X_test)
-                        
-                        cm = confusion_matrix(y_test, y_pred, labels=['Negatif', 'Positif'])
-                        accuracy = accuracy_score(y_test, y_pred)
-                        report = classification_report(y_test, y_pred, output_dict=True)
-
-                        all_metrics.append({
-                            'Model': name, 
-                            'Akurasi': accuracy, 
-                            'Precision': report['Positif']['precision'], 
-                            'Recall': report['Positif']['recall'], 
-                            'F1-Score': report['Positif']['f1-score']
-                        })
-                        
-                        st.subheader(f"📍 Hasil Evaluasi: {name}")
-                        m1, m2, m3, m4 = st.columns(4)
-                        m1.metric("Accuracy", f"{accuracy:.4f}")
-                        m2.metric("Precision", f"{report['Positif']['precision']:.4f}")
-                        m3.metric("Recall", f"{report['Positif']['recall']:.4f}")
-                        m4.metric("F1-Score", f"{report['Positif']['f1-score']:.4f}")
-                        
-                        col_table, col_viz = st.columns([1, 1])
-                        with col_table:
-                            cm_df = pd.DataFrame(
-                                cm, 
-                                index=['Aktual Negatif', 'Aktual Positif'], 
-                                columns=['Prediksi Negatif', 'Prediksi Positif']
-                            )
-                            st.markdown("**Confusion Matrix**")
-                            st.table(cm_df)
-                            
-                        with col_viz:
-                            fig_cm, ax_cm = plt.subplots(figsize=(5, 4))
-                            sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-                                        xticklabels=['Negatif', 'Positif'], 
-                                        yticklabels=['Negatif', 'Positif'], ax=ax_cm)
-                            plt.ylabel('Aktual'); plt.xlabel('Prediksi')
-                            st.pyplot(fig_cm)
-                        
-                        st.divider()
-
-                    # 5. Tabel Perbandingan Final
-                    res_df = pd.DataFrame(all_metrics)
-                    st.subheader("📊 Tabel Perbandingan Keseluruhan")
-                    st.dataframe(
-                        res_df.set_index('Model').style.highlight_max(axis=0, color='lightgreen').format("{:.4f}"), 
-                        use_container_width=True
-                    )
+                    # Ambil Confusion Matrix
+                    cm = confusion_matrix(y_test, y_pred, labels=['Negatif', 'Positif'])
                     
-                    best_model = res_df.loc[res_df['F1-Score'].idxmax()]
-                    st.success(f"🏆 Model Terbaik: **{best_model['Model']}**")
+                    accuracy = accuracy_score(y_test, y_pred)
+                    report = classification_report(y_test, y_pred, output_dict=True)
+
+                    # --- PERBAIKAN DI SINI: Masukkan semua metrik ke dalam list ---
+                    all_metrics.append({
+                        'Model': name, 
+                        'Akurasi': accuracy, 
+                        'Precision': report['Positif']['precision'], 
+                        'Recall': report['Positif']['recall'], 
+                        'F1-Score': report['Positif']['f1-score']
+                    })
+                    
+                    st.subheader(f"📍 Hasil Evaluasi: {name}")
+                    
+                    # Tampilan Metrik Atas
+                    m1, m2, m3, m4 = st.columns(4)
+                    m1.metric("Accuracy", f"{accuracy:.4f}")
+                    m2.metric("Precision", f"{report['Positif']['precision']:.4f}")
+                    m3.metric("Recall", f"{report['Positif']['recall']:.4f}")
+                    m4.metric("F1-Score", f"{report['Positif']['f1-score']:.4f}")
+                    
+                    # Visualisasi Tabel CF & Heatmap
+                    col_table, col_viz = st.columns([1, 1])
+                    with col_table:
+                        cm_df = pd.DataFrame(
+                            cm, 
+                            index=['Aktual Negatif', 'Aktual Positif'], 
+                            columns=['Prediksi Negatif', 'Prediksi Positif']
+                        )
+                        st.markdown("**Confusion Matrix (Detail Angka)**")
+                        st.table(cm_df)
+                        
+                    with col_viz:
+                        fig_cm, ax_cm = plt.subplots(figsize=(5, 4))
+                        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
+                                    xticklabels=['Negatif', 'Positif'], 
+                                    yticklabels=['Negatif', 'Positif'], ax=ax_cm)
+                        plt.ylabel('Aktual')
+                        plt.xlabel('Prediksi')
+                        st.pyplot(fig_cm)
+                    
+                    st.divider()
+                # 5. Tabel Perbandingan Final (Menampilkan Semua Metrik)
+                res_df = pd.DataFrame(all_metrics)
+                st.subheader("📊 Tabel Perbandingan Keseluruhan")
+                
+                # Menampilkan tabel dengan highlight pada nilai tertinggi agar lebih informatif
+                st.dataframe(
+                    res_df.set_index('Model').style.highlight_max(axis=0, color='lightgreen').format("{:.4f}"), 
+                    use_container_width=True
+                )
+                
+                best_model = res_df.loc[res_df['F1-Score'].idxmax()]
+                st.success(f"🏆 Model dengan performa terbaik (F1-Score): **{best_model['Model']}**")
 
         with tab_tfidf:
             st.subheader("🔢 Analisis Pembobotan Kata (TF-IDF)")
+            
             if 'tfidf_matrix' in st.session_state:
+                st.info("Menampilkan kata-kata yang memiliki pengaruh paling kuat dalam dataset ulasan ini.")
+                
+                # Mengambil rata-rata nilai TF-IDF untuk setiap kata
                 tfidf_matrix = st.session_state['tfidf_matrix']
                 feature_names = st.session_state['tfidf_features']
+                
+                # Hitung Mean TF-IDF
                 mean_weights = np.asarray(tfidf_matrix.mean(axis=0)).ravel().tolist()
                 
-                df_tfidf_top = pd.DataFrame({'Kata': feature_names, 'Bobot_TFIDF': mean_weights})
+                df_tfidf_top = pd.DataFrame({
+                    'Kata': feature_names, 
+                    'Bobot_TFIDF': mean_weights
+                })
+                
+                # Ambil Top 20
                 df_tfidf_top = df_tfidf_top.sort_values(by='Bobot_TFIDF', ascending=False).head(20)
 
-                col_t, col_c = st.columns([1, 2])
-                with col_t:
+                col_table, col_chart = st.columns([1, 2])
+                
+                with col_table:
                     st.write("**Top 20 Kata Terpenting**")
                     st.dataframe(df_tfidf_top.reset_index(drop=True), use_container_width=True)
-                with col_c:
-                    fig_tfidf = px.bar(df_tfidf_top, x='Bobot_TFIDF', y='Kata', orientation='h', 
-                                      color='Bobot_TFIDF', color_continuous_scale='Viridis')
+                
+                with col_chart:
+                    fig_tfidf = px.bar(
+                        df_tfidf_top, 
+                        x='Bobot_TFIDF', 
+                        y='Kata', 
+                        orientation='h',
+                        title="Grafik Kepentingan Kata (Mean TF-IDF Score)",
+                        color='Bobot_TFIDF',
+                        color_continuous_scale='Viridis'
+                    )
                     fig_tfidf.update_layout(yaxis={'categoryorder':'total ascending'})
                     st.plotly_chart(fig_tfidf, use_container_width=True)
             else:
-                st.warning("⚠️ Jalankan komputasi di tab sebelah dulu.")
+                st.warning("⚠️ Data belum diproses. Silakan kembali ke tab **Pelatihan & Skor** dan klik **Jalankan Komputasi**.")
+
+
