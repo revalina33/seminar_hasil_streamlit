@@ -8,4 +8,4 @@ wordcloud
 plotly
 joblib
 openpyxl
-python-3.11.9
+python==3.11.9
