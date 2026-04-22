@@ -233,8 +233,8 @@ if uploaded_file:
             with st.spinner("Sedang melatih semua model (RF, SVM Linear, RBF, Poly, Sigmoid)..."):
                 # 1. Persiapan Data
                 col_text = 'stemming' if 'stemming' in df.columns else df.columns[0]
-                X = df[col_text].fillna('').values
-                y = df['Labeling'].values
+                X = df[col_text].fillna('').astype(str).to_numpy()
+                y = df['Labeling'].astype(str).to_numpy()
                 df = df.sample(frac=1, random_state=42).reset_index(drop=True)
                 X_train_raw, X_test_raw, y_train, y_test = train_test_split(
                     X, y, test_size=0.2, random_state=42, stratify=y
