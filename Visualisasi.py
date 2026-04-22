@@ -10,7 +10,8 @@ from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from wordcloud import WordCloud, STOPWORDS
 import plotly.express as px
-
+import random
+import os
 seed = 42
 random.seed(seed)
 np.random.seed(seed)
