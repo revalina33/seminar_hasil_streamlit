@@ -3,7 +3,8 @@ pandas
 numpy
 matplotlib
 seaborn
-plotly
-scikit-learn= 1.7.2
+scikit-learn==1.7.2
 wordcloud
+plotly
+joblib
 openpyxl
