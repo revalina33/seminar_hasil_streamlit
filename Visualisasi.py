@@ -3,25 +3,14 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import random
-import os
-
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-
 from wordcloud import WordCloud, STOPWORDS
 import plotly.express as px
 
-# ==============================
-# 🔥 SEED FIX 
-# ==============================
-seed = 42
-random.seed(seed)
-np.random.seed(seed)
-os.environ["PYTHONHASHSEED"] = str(seed)
 # ==============================
 # 1️⃣ Konfigurasi Halaman
 # ==============================
