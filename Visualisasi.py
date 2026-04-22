@@ -11,6 +11,8 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from wordcloud import WordCloud, STOPWORDS
 import plotly.express as px
 
+np.random.seed(42)
+random.seed(42)
 # ==============================
 # 1️⃣ Konfigurasi Halaman
 # ==============================
