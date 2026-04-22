@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+np.random.seed(42)
+random.seed(42)
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
@@ -11,8 +13,7 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from wordcloud import WordCloud, STOPWORDS
 import plotly.express as px
 
-np.random.seed(42)
-random.seed(42)
+
 # ==============================
 # 1️⃣ Konfigurasi Halaman
 # ==============================
@@ -234,8 +235,8 @@ if uploaded_file:
             with st.spinner("Sedang melatih semua model (RF, SVM Linear, RBF, Poly, Sigmoid)..."):
                 # 1. Persiapan Data
                 col_text = 'stemming' if 'stemming' in df.columns else df.columns[0]
-                X = df[col_text].fillna('')
-                y = df['Labeling']
+                X = df[col_text].fillna('').values
+                y = df['Labeling'].values
                 df = df.sample(frac=1, random_state=42).reset_index(drop=True)
                 X_train_raw, X_test_raw, y_train, y_test = train_test_split(
                     X, y, test_size=0.2, random_state=42, stratify=y
